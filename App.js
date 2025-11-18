@@ -1,42 +1,89 @@
-
-npm install @react-navigation/native
-npm install @react-navigation/native-stack
-npm install @react-navigation/bottom-tabs
-npm install @react-navigation/drawer
-npm install react-native-safe-area-context react-native-screens react-native-gesture-handler react-native-reanimated
-
 import * as React from 'react';
-import { Text, View, Platform } from 'react-native';
+import { Text, View, Platform, FlatList, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 
-// Screen Components
+// ---------------------------
+// Screens With API Fetching
+// ---------------------------
+
+// PLANETS
 function PlanetsScreen() {
+  const [planets, setPlanets] = React.useState([]);
+
+  React.useEffect(() => {
+    fetch("https://swapi.dev/api/planets/")
+      .then(res => res.json())
+      .then(data => setPlanets(data.results))
+      .catch(err => console.error(err));
+  }, []);
+
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 24 }}>Planets Screen</Text>
+    <View style={styles.container}>
+      <FlatList
+        data={planets}
+        keyExtractor={(item) => item.name}
+        renderItem={({ item }) => (
+          <Text style={styles.listItem}>{item.name}</Text>
+        )}
+      />
     </View>
   );
 }
 
+// FILMS
 function FilmsScreen() {
+  const [films, setFilms] = React.useState([]);
+
+  React.useEffect(() => {
+    fetch("https://swapi.dev/api/films/")
+      .then(res => res.json())
+      .then(data => setFilms(data.results))
+      .catch(err => console.error(err));
+  }, []);
+
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 24 }}>Films Screen</Text>
+    <View style={styles.container}>
+      <FlatList
+        data={films}
+        keyExtractor={(item) => item.title}
+        renderItem={({ item }) => (
+          <Text style={styles.listItem}>{item.title}</Text>
+        )}
+      />
     </View>
   );
 }
 
+// SPACESHIPS (STARSHIPS)
 function SpaceshipsScreen() {
+  const [ships, setShips] = React.useState([]);
+
+  React.useEffect(() => {
+    fetch("https://swapi.dev/api/starships/")
+      .then(res => res.json())
+      .then(data => setShips(data.results))
+      .catch(err => console.error(err));
+  }, []);
+
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 24 }}>Spaceships Screen</Text>
+    <View style={styles.container}>
+      <FlatList
+        data={ships}
+        keyExtractor={(item) => item.name}
+        renderItem={({ item }) => (
+          <Text style={styles.listItem}>{item.name}</Text>
+        )}
+      />
     </View>
   );
 }
 
-// Navigation setup
+// ---------------------------
+// Navigation Setup
+// ---------------------------
+
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
@@ -60,6 +107,10 @@ function Drawers() {
   );
 }
 
+// ---------------------------
+// Main App
+// ---------------------------
+
 export default function App() {
   return (
     <NavigationContainer>
@@ -67,3 +118,23 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
+// ---------------------------
+// Styles
+// ---------------------------
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    marginTop: 30,
+  },
+  listItem: {
+    fontSize: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
+  },
+});
+
+
