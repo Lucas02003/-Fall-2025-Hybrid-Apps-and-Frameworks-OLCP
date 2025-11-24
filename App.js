@@ -8,6 +8,7 @@ import {
   TextInput,
   Button,
   Modal,
+  Animated,
 } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
@@ -16,20 +17,32 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 
 import { Swipeable } from 'react-native-gesture-handler';
 
-// -----------------------------------------------------
-// REUSABLE SWIPEABLE LIST ITEM
-// -----------------------------------------------------
+/* ---------------------------------------------------
+   REUSABLE ANIMATED SWIPEABLE LIST ITEM (Chapter 25)
+------------------------------------------------------ */
 function SwipeItem({ text, onSwipe }) {
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   return (
     <Swipeable onSwipeableRightOpen={() => onSwipe(text)}>
-      <Text style={styles.listItem}>{text}</Text>
+      <Animated.View style={{ opacity: fadeAnim }}>
+        <Text style={styles.listItem}>{text}</Text>
+      </Animated.View>
     </Swipeable>
   );
 }
 
-// -----------------------------------------------------
-// PLANETS SCREEN
-// -----------------------------------------------------
+/* ---------------------------------------
+   PLANETS SCREEN
+------------------------------------------ */
 function PlanetsScreen() {
   const [planets, setPlanets] = React.useState([]);
   const [searchText, setSearchText] = React.useState("");
@@ -68,7 +81,6 @@ function PlanetsScreen() {
         </View>
       </Modal>
 
-      {/* SCROLLVIEW LIST */}
       <ScrollView>
         {planets.map((item) => (
           <SwipeItem
@@ -78,13 +90,14 @@ function PlanetsScreen() {
           />
         ))}
       </ScrollView>
+
     </View>
   );
 }
 
-// -----------------------------------------------------
-// FILMS SCREEN
-// -----------------------------------------------------
+/* ---------------------------------------
+   FILMS SCREEN
+------------------------------------------ */
 function FilmsScreen() {
   const [films, setFilms] = React.useState([]);
   const [searchText, setSearchText] = React.useState("");
@@ -123,7 +136,6 @@ function FilmsScreen() {
         </View>
       </Modal>
 
-      {/* SCROLLVIEW LIST */}
       <ScrollView>
         {films.map((item) => (
           <SwipeItem
@@ -133,13 +145,14 @@ function FilmsScreen() {
           />
         ))}
       </ScrollView>
+
     </View>
   );
 }
 
-// -----------------------------------------------------
-// SPACESHIPS SCREEN
-// -----------------------------------------------------
+/* ---------------------------------------
+   SPACESHIPS SCREEN
+------------------------------------------ */
 function SpaceshipsScreen() {
   const [ships, setShips] = React.useState([]);
   const [searchText, setSearchText] = React.useState("");
@@ -178,7 +191,6 @@ function SpaceshipsScreen() {
         </View>
       </Modal>
 
-      {/* SCROLLVIEW LIST */}
       <ScrollView>
         {ships.map((item) => (
           <SwipeItem
@@ -188,13 +200,14 @@ function SpaceshipsScreen() {
           />
         ))}
       </ScrollView>
+
     </View>
   );
 }
 
-// -----------------------------------------------------
-// NAVIGATION SETUP
-// -----------------------------------------------------
+/* ---------------------------------------
+   NAVIGATION SETUP
+------------------------------------------ */
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
@@ -218,9 +231,9 @@ function Drawers() {
   );
 }
 
-// -----------------------------------------------------
-// MAIN APP
-// -----------------------------------------------------
+/* ---------------------------------------
+   MAIN APP
+------------------------------------------ */
 export default function App() {
   return (
     <NavigationContainer>
@@ -229,9 +242,9 @@ export default function App() {
   );
 }
 
-// -----------------------------------------------------
-// STYLES
-// -----------------------------------------------------
+/* ---------------------------------------
+   STYLES
+------------------------------------------ */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -271,5 +284,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 });
+
+
 
 
