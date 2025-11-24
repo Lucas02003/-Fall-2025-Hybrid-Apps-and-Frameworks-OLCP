@@ -3,15 +3,29 @@ import {
   Text,
   View,
   Platform,
-  FlatList,
+  ScrollView,
   StyleSheet,
   TextInput,
   Button,
   Modal,
 } from 'react-native';
+
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+
+import { Swipeable } from 'react-native-gesture-handler';
+
+// -----------------------------------------------------
+// REUSABLE SWIPEABLE LIST ITEM
+// -----------------------------------------------------
+function SwipeItem({ text, onSwipe }) {
+  return (
+    <Swipeable onSwipeableRightOpen={() => onSwipe(text)}>
+      <Text style={styles.listItem}>{text}</Text>
+    </Swipeable>
+  );
+}
 
 // -----------------------------------------------------
 // PLANETS SCREEN
@@ -20,6 +34,7 @@ function PlanetsScreen() {
   const [planets, setPlanets] = React.useState([]);
   const [searchText, setSearchText] = React.useState("");
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState("");
 
   React.useEffect(() => {
     fetch("https://swapi.dev/api/planets/")
@@ -27,6 +42,11 @@ function PlanetsScreen() {
       .then(data => setPlanets(data.results))
       .catch(err => console.error(err));
   }, []);
+
+  const openItem = (name) => {
+    setSelectedItem(name);
+    setModalVisible(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -38,24 +58,26 @@ function PlanetsScreen() {
         style={styles.input}
       />
 
-      <Button title="Submit" onPress={() => setModalVisible(true)} />
-
+      {/* MODAL */}
       <Modal visible={modalVisible} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalText}>You entered: {searchText}</Text>
+            <Text style={styles.modalText}>{selectedItem}</Text>
             <Button title="Close" onPress={() => setModalVisible(false)} />
           </View>
         </View>
       </Modal>
 
-      <FlatList
-        data={planets}
-        keyExtractor={(item) => item.name}
-        renderItem={({ item }) => (
-          <Text style={styles.listItem}>{item.name}</Text>
-        )}
-      />
+      {/* SCROLLVIEW LIST */}
+      <ScrollView>
+        {planets.map((item) => (
+          <SwipeItem
+            key={item.name}
+            text={item.name}
+            onSwipe={openItem}
+          />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -67,6 +89,7 @@ function FilmsScreen() {
   const [films, setFilms] = React.useState([]);
   const [searchText, setSearchText] = React.useState("");
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState("");
 
   React.useEffect(() => {
     fetch("https://swapi.dev/api/films/")
@@ -74,6 +97,11 @@ function FilmsScreen() {
       .then(data => setFilms(data.results))
       .catch(err => console.error(err));
   }, []);
+
+  const openItem = (title) => {
+    setSelectedItem(title);
+    setModalVisible(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -85,24 +113,26 @@ function FilmsScreen() {
         style={styles.input}
       />
 
-      <Button title="Submit" onPress={() => setModalVisible(true)} />
-
+      {/* MODAL */}
       <Modal visible={modalVisible} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalText}>You entered: {searchText}</Text>
+            <Text style={styles.modalText}>{selectedItem}</Text>
             <Button title="Close" onPress={() => setModalVisible(false)} />
           </View>
         </View>
       </Modal>
 
-      <FlatList
-        data={films}
-        keyExtractor={(item) => item.title}
-        renderItem={({ item }) => (
-          <Text style={styles.listItem}>{item.title}</Text>
-        )}
-      />
+      {/* SCROLLVIEW LIST */}
+      <ScrollView>
+        {films.map((item) => (
+          <SwipeItem
+            key={item.title}
+            text={item.title}
+            onSwipe={openItem}
+          />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -114,6 +144,7 @@ function SpaceshipsScreen() {
   const [ships, setShips] = React.useState([]);
   const [searchText, setSearchText] = React.useState("");
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState("");
 
   React.useEffect(() => {
     fetch("https://swapi.dev/api/starships/")
@@ -121,6 +152,11 @@ function SpaceshipsScreen() {
       .then(data => setShips(data.results))
       .catch(err => console.error(err));
   }, []);
+
+  const openItem = (name) => {
+    setSelectedItem(name);
+    setModalVisible(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -132,24 +168,26 @@ function SpaceshipsScreen() {
         style={styles.input}
       />
 
-      <Button title="Submit" onPress={() => setModalVisible(true)} />
-
+      {/* MODAL */}
       <Modal visible={modalVisible} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalText}>You entered: {searchText}</Text>
+            <Text style={styles.modalText}>{selectedItem}</Text>
             <Button title="Close" onPress={() => setModalVisible(false)} />
           </View>
         </View>
       </Modal>
 
-      <FlatList
-        data={ships}
-        keyExtractor={(item) => item.name}
-        renderItem={({ item }) => (
-          <Text style={styles.listItem}>{item.name}</Text>
-        )}
-      />
+      {/* SCROLLVIEW LIST */}
+      <ScrollView>
+        {ships.map((item) => (
+          <SwipeItem
+            key={item.name}
+            text={item.name}
+            onSwipe={openItem}
+          />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -202,9 +240,10 @@ const styles = StyleSheet.create({
   },
   listItem: {
     fontSize: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderColor: "#ccc",
+    backgroundColor: "white"
   },
   input: {
     borderWidth: 1,
