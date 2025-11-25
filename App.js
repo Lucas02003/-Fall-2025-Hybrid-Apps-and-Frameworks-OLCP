@@ -1,289 +1,304 @@
-import * as React from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   Text,
   View,
-  Platform,
-  ScrollView,
   StyleSheet,
-  TextInput,
-  Button,
+  ScrollView,
   Modal,
+  Pressable,
   Animated,
-} from 'react-native';
+} from "react-native";
 
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { NavigationContainer } from "@react-navigation/native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Image } from "expo-image";
+import { Swipeable } from "react-native-gesture-handler";
 
-import { Swipeable } from 'react-native-gesture-handler';
+// -----------------------------------------------------
+// Reusable Animated Header Image (Expo-safe)
+// -----------------------------------------------------
+const HeaderImage = ({ uri }) => {
+  const fade = useRef(new Animated.Value(0)).current;
 
-/* ---------------------------------------------------
-   REUSABLE ANIMATED SWIPEABLE LIST ITEM (Chapter 25)
------------------------------------------------------- */
-function SwipeItem({ text, onSwipe }) {
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    Animated.timing(fadeAnim, {
+  useEffect(() => {
+    Animated.timing(fade, {
       toValue: 1,
-      duration: 500,
+      duration: 800,
       useNativeDriver: true,
     }).start();
   }, []);
 
   return (
-    <Swipeable onSwipeableRightOpen={() => onSwipe(text)}>
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <Text style={styles.listItem}>{text}</Text>
-      </Animated.View>
+    <Animated.View style={{ opacity: fade }}>
+      <View style={styles.headerContainer}>
+        <Image
+          source={uri}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="cover"
+          transition={500}
+        />
+      </View>
+    </Animated.View>
+  );
+};
+
+// -----------------------------------------------------
+// Reusable Swipeable List Item
+// -----------------------------------------------------
+const SwipeableItem = ({ text, onSwipe }) => {
+  const renderRight = () => (
+    <View style={styles.swipeBox}>
+      <Text style={styles.swipeText}>Open</Text>
+    </View>
+  );
+
+  return (
+    <Swipeable renderRightActions={renderRight} onSwipeableOpen={onSwipe}>
+      <View style={styles.listItem}>
+        <Text style={styles.listText}>{text}</Text>
+      </View>
     </Swipeable>
   );
+};
+
+// -----------------------------------------------------
+// Characters Screen
+// -----------------------------------------------------
+function CharactersScreen() {
+  const [data, setData] = useState([]);
+  const [modalText, setModalText] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const headerUri =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Stormtroopers_Marching.jpg/640px-Stormtroopers_Marching.jpg";
+
+  useEffect(() => {
+    fetch("https://swapi.dev/api/people/")
+      .then((r) => r.json())
+      .then((d) => setData(d.results));
+  }, []);
+
+  return (
+    <View style={styles.screen}>
+      <ScrollView>
+        <HeaderImage uri={headerUri} />
+
+        {data.map((item) => (
+          <SwipeableItem
+            key={item.name}
+            text={item.name}
+            onSwipe={() => {
+              setModalText(item.name);
+              setModalVisible(true);
+            }}
+          />
+        ))}
+      </ScrollView>
+
+      {/* Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.modalCenter}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>{modalText}</Text>
+
+            <Pressable
+              style={styles.modalButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
 }
 
-/* ---------------------------------------
-   PLANETS SCREEN
------------------------------------------- */
+// -----------------------------------------------------
+// Planets Screen
+// -----------------------------------------------------
 function PlanetsScreen() {
-  const [planets, setPlanets] = React.useState([]);
-  const [searchText, setSearchText] = React.useState("");
-  const [modalVisible, setModalVisible] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState("");
+  const [data, setData] = useState([]);
+  const [modalText, setModalText] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
 
-  React.useEffect(() => {
+  const headerUri =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/ESO_-_Milky_Way.jpg/640px-ESO_-_Milky_Way.jpg";
+
+  useEffect(() => {
     fetch("https://swapi.dev/api/planets/")
-      .then(res => res.json())
-      .then(data => setPlanets(data.results))
-      .catch(err => console.error(err));
+      .then((r) => r.json())
+      .then((d) => setData(d.results));
   }, []);
 
-  const openItem = (name) => {
-    setSelectedItem(name);
-    setModalVisible(true);
-  };
-
   return (
-    <View style={styles.container}>
-
-      <TextInput
-        placeholder="Search planets…"
-        value={searchText}
-        onChangeText={setSearchText}
-        style={styles.input}
-      />
-
-      {/* MODAL */}
-      <Modal visible={modalVisible} transparent={true} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalText}>{selectedItem}</Text>
-            <Button title="Close" onPress={() => setModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-
+    <View style={styles.screen}>
       <ScrollView>
-        {planets.map((item) => (
-          <SwipeItem
+        <HeaderImage uri={headerUri} />
+
+        {data.map((item) => (
+          <SwipeableItem
             key={item.name}
             text={item.name}
-            onSwipe={openItem}
+            onSwipe={() => {
+              setModalText(item.name);
+              setModalVisible(true);
+            }}
           />
         ))}
       </ScrollView>
 
-    </View>
-  );
-}
-
-/* ---------------------------------------
-   FILMS SCREEN
------------------------------------------- */
-function FilmsScreen() {
-  const [films, setFilms] = React.useState([]);
-  const [searchText, setSearchText] = React.useState("");
-  const [modalVisible, setModalVisible] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState("");
-
-  React.useEffect(() => {
-    fetch("https://swapi.dev/api/films/")
-      .then(res => res.json())
-      .then(data => setFilms(data.results))
-      .catch(err => console.error(err));
-  }, []);
-
-  const openItem = (title) => {
-    setSelectedItem(title);
-    setModalVisible(true);
-  };
-
-  return (
-    <View style={styles.container}>
-
-      <TextInput
-        placeholder="Search films…"
-        value={searchText}
-        onChangeText={setSearchText}
-        style={styles.input}
-      />
-
-      {/* MODAL */}
-      <Modal visible={modalVisible} transparent={true} animationType="slide">
-        <View style={styles.modalContainer}>
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.modalCenter}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalText}>{selectedItem}</Text>
-            <Button title="Close" onPress={() => setModalVisible(false)} />
+            <Text style={styles.modalTitle}>{modalText}</Text>
+
+            <Pressable
+              style={styles.modalButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Close</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
-
-      <ScrollView>
-        {films.map((item) => (
-          <SwipeItem
-            key={item.title}
-            text={item.title}
-            onSwipe={openItem}
-          />
-        ))}
-      </ScrollView>
-
     </View>
   );
 }
 
-/* ---------------------------------------
-   SPACESHIPS SCREEN
------------------------------------------- */
-function SpaceshipsScreen() {
-  const [ships, setShips] = React.useState([]);
-  const [searchText, setSearchText] = React.useState("");
-  const [modalVisible, setModalVisible] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState("");
+// -----------------------------------------------------
+// Starships Screen
+// -----------------------------------------------------
+function StarshipsScreen() {
+  const [data, setData] = useState([]);
+  const [modalText, setModalText] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
 
-  React.useEffect(() => {
+  const headerUri =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/X-Wing_Fighter_model.jpg/640px-X-Wing_Fighter_model.jpg";
+
+  useEffect(() => {
     fetch("https://swapi.dev/api/starships/")
-      .then(res => res.json())
-      .then(data => setShips(data.results))
-      .catch(err => console.error(err));
+      .then((r) => r.json())
+      .then((d) => setData(d.results));
   }, []);
 
-  const openItem = (name) => {
-    setSelectedItem(name);
-    setModalVisible(true);
-  };
-
   return (
-    <View style={styles.container}>
-
-      <TextInput
-        placeholder="Search spaceships…"
-        value={searchText}
-        onChangeText={setSearchText}
-        style={styles.input}
-      />
-
-      {/* MODAL */}
-      <Modal visible={modalVisible} transparent={true} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalText}>{selectedItem}</Text>
-            <Button title="Close" onPress={() => setModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-
+    <View style={styles.screen}>
       <ScrollView>
-        {ships.map((item) => (
-          <SwipeItem
+        <HeaderImage uri={headerUri} />
+
+        {data.map((item) => (
+          <SwipeableItem
             key={item.name}
             text={item.name}
-            onSwipe={openItem}
+            onSwipe={() => {
+              setModalText(item.name);
+              setModalVisible(true);
+            }}
           />
         ))}
       </ScrollView>
 
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.modalCenter}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>{modalText}</Text>
+
+            <Pressable
+              style={styles.modalButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-/* ---------------------------------------
-   NAVIGATION SETUP
------------------------------------------- */
+// -----------------------------------------------------
+// Navigation Setup
+// -----------------------------------------------------
 const Tab = createBottomTabNavigator();
-const Drawer = createDrawerNavigator();
 
-function Tabs() {
-  return (
-    <Tab.Navigator>
-      <Tab.Screen name="Planets" component={PlanetsScreen} />
-      <Tab.Screen name="Films" component={FilmsScreen} />
-      <Tab.Screen name="Spaceships" component={SpaceshipsScreen} />
-    </Tab.Navigator>
-  );
-}
-
-function Drawers() {
-  return (
-    <Drawer.Navigator>
-      <Drawer.Screen name="Planets" component={PlanetsScreen} />
-      <Drawer.Screen name="Films" component={FilmsScreen} />
-      <Drawer.Screen name="Spaceships" component={SpaceshipsScreen} />
-    </Drawer.Navigator>
-  );
-}
-
-/* ---------------------------------------
-   MAIN APP
------------------------------------------- */
 export default function App() {
   return (
     <NavigationContainer>
-      {Platform.OS === 'ios' ? <Tabs /> : <Drawers />}
+      <Tab.Navigator>
+        <Tab.Screen name="Characters" component={CharactersScreen} />
+        <Tab.Screen name="Planets" component={PlanetsScreen} />
+        <Tab.Screen name="Starships" component={StarshipsScreen} />
+      </Tab.Navigator>
     </NavigationContainer>
   );
 }
 
-/* ---------------------------------------
-   STYLES
------------------------------------------- */
+// -----------------------------------------------------
+// Styles
+// -----------------------------------------------------
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 20,
-    marginTop: 30,
+  },
+  headerContainer: {
+    width: "100%",
+    height: 200,
+    backgroundColor: "#000",
   },
   listItem: {
-    fontSize: 20,
-    paddingVertical: 12,
+    padding: 20,
     borderBottomWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "white"
+    borderColor: "#444",
+    backgroundColor: "#111",
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#aaa",
-    padding: 10,
-    marginBottom: 10,
+  listText: {
+    color: "white",
     fontSize: 18,
-    borderRadius: 5,
   },
-  modalContainer: {
+  swipeBox: {
+    backgroundColor: "#e63946",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 80,
+  },
+  swipeText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  modalCenter: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   modalBox: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
     width: "80%",
+    padding: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
     alignItems: "center",
   },
-  modalText: {
-    fontSize: 20,
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
     marginBottom: 20,
   },
+  modalButton: {
+    marginTop: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "#333",
+    borderRadius: 8,
+  },
+  modalButtonText: {
+    color: "white",
+    fontSize: 16,
+  },
 });
+
+
 
 
 
