@@ -10,65 +10,49 @@ import {
   TextInput,
 } from "react-native";
 
-import NetInfo from "@react-native-community/netinfo";
+import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Image } from "expo-image";
-import { Swipeable } from "react-native-gesture-handler";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-// -----------------------------------------------------
-// Network Hook
-// -----------------------------------------------------
-function useNetworkStatus() {
-  const [isConnected, setIsConnected] = useState(true);
+/* =====================================================
 
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsConnected(state.isConnected && state.isInternetReachable);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  return isConnected;
-}
-
-// -----------------------------------------------------
-// Animated Header Image (ESLint Safe)
-// -----------------------------------------------------
+===================================================== */
 const HeaderImage = ({ uri }) => {
   const fade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    fade.setValue(0);
     Animated.timing(fade, {
       toValue: 1,
-      duration: 800,
+      duration: 900,
       useNativeDriver: true,
     }).start();
-  }, [fade]);
+  }, [uri]);
 
   return (
-    <Animated.View style={{ opacity: fade }}>
-      <View style={styles.headerContainer}>
-        <Image
-          source={uri}
-          style={{ width: "100%", height: "100%" }}
-          contentFit="cover"
-          transition={500}
-        />
-      </View>
-    </Animated.View>
+    <View style={styles.headerContainer}>
+      <Animated.Image
+        source={{ uri }}
+        resizeMode="cover"
+        style={{
+          width: "100%",
+          height: "100%",
+          opacity: fade,
+        }}
+      />
+    </View>
   );
 };
 
-// -----------------------------------------------------
-// Search Bar
-// -----------------------------------------------------
+/* =====================================================
+SEARCH BAR
+===================================================== */
 const SearchBar = ({ value, onChange }) => (
   <View style={styles.searchBox}>
     <TextInput
       placeholder="Search..."
-      placeholderTextColor="#999"
+      placeholderTextColor="#888"
       value={value}
       onChangeText={onChange}
       style={styles.searchInput}
@@ -76,58 +60,51 @@ const SearchBar = ({ value, onChange }) => (
   </View>
 );
 
-// -----------------------------------------------------
-// Swipeable Item
-// -----------------------------------------------------
-const SwipeableItem = ({ text, onSwipe }) => {
+/* =====================================================
+SWIPE ITEM
+===================================================== */
+const SwipeableItem = ({ item, onOpen }) => {
   const renderRight = () => (
-    <View style={styles.swipeBox}>
+    <Pressable style={styles.swipeBox} onPress={() => onOpen(item)}>
       <Text style={styles.swipeText}>Open</Text>
-    </View>
+    </Pressable>
   );
 
   return (
-    <Swipeable renderRightActions={renderRight} onSwipeableOpen={onSwipe}>
+    <Swipeable
+      renderRightActions={renderRight}
+      onSwipeableOpen={() => onOpen(item)}
+    >
       <View style={styles.listItem}>
-        <Text style={styles.listText}>{text}</Text>
+        <Text style={styles.listText}>
+          {item.name || item.title}
+        </Text>
       </View>
     </Swipeable>
   );
 };
 
-// -----------------------------------------------------
-// Reusable Data Screen (ESLint Safe)
-// -----------------------------------------------------
-function DataScreen({ url, headerUri }) {
+/* =====================================================
+REUSABLE DATA SCREEN (NO NETINFO — SNACK SAFE)
+===================================================== */
+function DataScreen({ url, headerUri, onItemOpen }) {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
   const [modalText, setModalText] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
 
-  const isOnline = useNetworkStatus();
-
   useEffect(() => {
-    if (!isOnline) return;
-
     fetch(url)
-      .then((r) => r.json())
-      .then((d) => setData(d.results))
+      .then((res) => res.json())
+      .then((json) => setData(json.results || []))
       .catch(console.error);
-  }, [isOnline, url]);
+  }, [url]);
 
-  const filteredData = data.filter((item) =>
-    item.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = data.filter((item) =>
+    (item.name || item.title)
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
-
-  if (!isOnline) {
-    return (
-      <View style={styles.offlineBox}>
-        <Text style={styles.offlineText}>
-          ⚠️ No internet connection. Please check your network.
-        </Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.screen}>
@@ -135,14 +112,18 @@ function DataScreen({ url, headerUri }) {
         <HeaderImage uri={headerUri} />
         <SearchBar value={search} onChange={setSearch} />
 
-        {filteredData.map((item) => (
+        {filtered.map((item) => (
           <SwipeableItem
-            key={item.name}
-            text={item.name}
-            onSwipe={() => {
-              setModalText(item.name);
-              setModalVisible(true);
-            }}
+            key={item.name || item.title}
+            item={item}
+            onOpen={
+              onItemOpen
+                ? onItemOpen
+                : (it) => {
+                    setModalText(it.name || it.title);
+                    setModalVisible(true);
+                  }
+            }
           />
         ))}
       </ScrollView>
@@ -151,7 +132,6 @@ function DataScreen({ url, headerUri }) {
         <View style={styles.modalCenter}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>{modalText}</Text>
-
             <Pressable
               style={styles.modalButton}
               onPress={() => setModalVisible(false)}
@@ -165,208 +145,73 @@ function DataScreen({ url, headerUri }) {
   );
 }
 
-// -----------------------------------------------------
-// Screens
-// -----------------------------------------------------
+/* =====================================================
+PLANET DETAIL SCREEN
+===================================================== */
+function PlanetDetailScreen({ route }) {
+  const { planet } = route.params;
+
+  return (
+    <ScrollView style={{ backgroundColor: "#000" }}>
+      <View style={styles.detailContainer}>
+        <Text style={styles.detailTitle}>{planet.name}</Text>
+
+        <View style={styles.detailCard}>
+          {Object.entries(planet).map(([key, value]) =>
+            typeof value === "string" ? (
+              <View key={key} style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{key}</Text>
+                <Text style={styles.detailValue}>{value}</Text>
+              </View>
+            ) : null
+          )}
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+/* =====================================================
+SCREENS
+===================================================== */
 const CharactersScreen = () => (
   <DataScreen
     url="https://swapi.dev/api/people/"
-    headerUri="https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Stormtroopers_Marching.jpg/640px-Stormtroopers_Marching.jpg"
+    headerUri="https://images.unsplash.com/photo-1579566346927-c68383817a25"
   />
 );
 
-const PlanetsScreen = () => (
+const PlanetsListScreen = ({ navigation }) => (
   <DataScreen
     url="https://swapi.dev/api/planets/"
-    headerUri="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/ESO_-_Milky_Way.jpg/640px-ESO_-_Milky_Way.jpg"
+    headerUri="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa"
+    onItemOpen={(item) =>
+      navigation.navigate("PlanetDetail", { planet: item })
+    }
   />
 );
 
 const StarshipsScreen = () => (
   <DataScreen
     url="https://swapi.dev/api/starships/"
-    headerUri="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/X-Wing_Fighter_model.jpg/640px-X-Wing_Fighter_model.jpg"
+    headerUri="https://images.unsplash.com/photo-1581093588401-12c1a39d757d"
   />
 );
 
-// -----------------------------------------------------
-// Navigation Setup
-// -----------------------------------------------------
+/* =====================================================
+NAVIGATION
+===================================================== */
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
-// ✅ ✅ ✅ DEFAULT EXPORT (FIXES "No default export" ERROR)
-export default function App() {
+function PlanetsStack() {
   return (
-    <NavigationContainer>
-      <Tab.Navigator>
-        <Tab.Screen name="Characters" component={CharactersScreen} />
-        <Tab.Screen name="Planets" component={PlanetsScreen} />
-        <Tab.Screen name="Starships" component={StarshipsScreen} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator>
+      <Stack.Screen name="PlanetsList" component={PlanetsListScreen} />
+      <Stack.Screen name="PlanetDetail" component={PlanetDetailScreen} />
+    </Stack.Navigator>
   );
 }
-
-// -----------------------------------------------------
-// Styles
-// -----------------------------------------------------
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-
-  headerContainer: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#000",
-  },
-
-  searchBox: {
-    padding: 10,
-    backgroundColor: "#000",
-  },
-
-  searchInput: {
-    backgroundColor: "#222",
-    color: "white",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-  },
-
-  listItem: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderColor: "#444",
-    backgroundColor: "#111",
-  },
-
-  listText: {
-    color: "white",
-    fontSize: 18,
-  },
-
-  swipeBox: {
-    backgroundColor: "#e63946",
-    justifyContent: "center",
-    alignItems: "center",
-    width: 80,
-  },
-
-  swipeText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-
-  modalCenter: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-
-  modalBox: {
-    width: "80%",
-    padding: 20,
-    backgroundColor: "white",
-    borderRadius: 10,
-    alignItems: "center",
-  },
-
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-
-  modalButton: {
-    marginTop: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#333",
-    borderRadius: 8,
-  },
-
-  modalButtonText: {
-    color: "white",
-    fontSize: 16,
-  },
-
-  offlineBox: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#000",
-  },
-
-  offlineText: {
-    color: "white",
-    fontSize: 18,
-    textAlign: "center",
-    padding: 20,
-  },
-});
-
-// -----------------------------------------------------
-// Styles
-// -----------------------------------------------------
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  headerContainer: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#000",
-  },
-  listItem: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderColor: "#444",
-    backgroundColor: "#111",
-  },
-  listText: {
-    color: "white",
-    fontSize: 18,
-  },
-  swipeBox: {
-    backgroundColor: "#e63946",
-    justifyContent: "center",
-    alignItems: "center",
-    width: 80,
-  },
-  swipeText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  modalCenter: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modalBox: {
-    width: "80%",
-    padding: 20,
-    backgroundColor: "white",
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  modalButton: {
-    marginTop: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#333",
-    borderRadius: 8,
-  },
-  modalButtonText: {
-    color: "white",
-    fontSize: 16,
-  },
-});
 
 
 
