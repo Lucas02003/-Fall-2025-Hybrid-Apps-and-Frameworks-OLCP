@@ -3,11 +3,12 @@ import {
   Text,
   View,
   StyleSheet,
-  ScrollView,
   Modal,
   Pressable,
   Animated,
   TextInput,
+  FlatList,
+  ScrollView,
 } from "react-native";
 
 import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
@@ -16,7 +17,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 /* =====================================================
-
+ANIMATED HEADER IMAGE
 ===================================================== */
 const HeaderImage = ({ uri }) => {
   const fade = useRef(new Animated.Value(0)).current;
@@ -56,6 +57,9 @@ const SearchBar = ({ value, onChange }) => (
       value={value}
       onChangeText={onChange}
       style={styles.searchInput}
+      autoCorrect={false}
+      autoCapitalize="none"
+      clearButtonMode="while-editing"
     />
   </View>
 );
@@ -71,10 +75,7 @@ const SwipeableItem = ({ item, onOpen }) => {
   );
 
   return (
-    <Swipeable
-      renderRightActions={renderRight}
-      onSwipeableOpen={() => onOpen(item)}
-    >
+    <Swipeable renderRightActions={renderRight}>
       <View style={styles.listItem}>
         <Text style={styles.listText}>
           {item.name || item.title}
@@ -85,7 +86,7 @@ const SwipeableItem = ({ item, onOpen }) => {
 };
 
 /* =====================================================
-REUSABLE DATA SCREEN (NO NETINFO — SNACK SAFE)
+REUSABLE DATA SCREEN (WITH SEARCH FILTERING)
 ===================================================== */
 function DataScreen({ url, headerUri, onItemOpen }) {
   const [data, setData] = useState([]);
@@ -108,13 +109,14 @@ function DataScreen({ url, headerUri, onItemOpen }) {
 
   return (
     <View style={styles.screen}>
-      <ScrollView>
-        <HeaderImage uri={headerUri} />
-        <SearchBar value={search} onChange={setSearch} />
+      <HeaderImage uri={headerUri} />
+      <SearchBar value={search} onChange={setSearch} />
 
-        {filtered.map((item) => (
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.name || item.title}
+        renderItem={({ item }) => (
           <SwipeableItem
-            key={item.name || item.title}
             item={item}
             onOpen={
               onItemOpen
@@ -125,8 +127,8 @@ function DataScreen({ url, headerUri, onItemOpen }) {
                   }
             }
           />
-        ))}
-      </ScrollView>
+        )}
+      />
 
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalCenter}>
@@ -213,6 +215,97 @@ function PlanetsStack() {
   );
 }
 
+/* =====================================================
+APP ROOT
+===================================================== */
+export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <Tab.Navigator>
+          <Tab.Screen name="Characters" component={CharactersScreen} />
+          <Tab.Screen name="Planets" component={PlanetsStack} />
+          <Tab.Screen name="Starships" component={StarshipsScreen} />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
+  );
+}
+
+/* =====================================================
+STYLES
+===================================================== */
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: "#000" },
+  headerContainer: { width: "100%", height: 220 },
+
+  searchBox: { padding: 10 },
+  searchInput: {
+    backgroundColor: "#111",
+    color: "white",
+    padding: 12,
+    borderRadius: 8,
+  },
+
+  listItem: {
+    padding: 18,
+    borderBottomWidth: 1,
+    borderColor: "#222",
+  },
+
+  listText: { color: "white", fontSize: 18 },
+
+  swipeBox: {
+    backgroundColor: "#e63946",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 90,
+  },
+
+  swipeText: { color: "white", fontWeight: "bold" },
+
+  modalCenter: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  modalBox: {
+    backgroundColor: "white",
+    padding: 20,
+    width: "80%",
+    borderRadius: 12,
+  },
+
+  modalTitle: { fontSize: 22, marginBottom: 16 },
+  modalButton: {
+    backgroundColor: "#333",
+    padding: 12,
+    borderRadius: 8,
+  },
+
+  modalButtonText: { color: "white", textAlign: "center" },
+
+  detailContainer: { padding: 20 },
+  detailTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "white",
+    textAlign: "center",
+  },
+
+  detailCard: {
+    backgroundColor: "#111",
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 12,
+  },
+
+  detailRow: { marginBottom: 12 },
+  detailLabel: { color: "#aaa" },
+  detailValue: { color: "white", fontSize: 18 },
+});
 
 
 
